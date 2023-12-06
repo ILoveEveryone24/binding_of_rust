@@ -49,31 +49,6 @@ fn main() {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'running,
-                /*
-                Event::KeyDown {
-                    keycode: Some(Keycode::W),
-                    ..
-                } => {
-                    player.set_y(player.y() - speed);
-                },
-                Event::KeyDown {
-                    keycode: Some(Keycode::A),
-                    ..
-                } => {
-                    player.set_x(player.x() - speed);
-                },
-                Event::KeyDown {
-                    keycode: Some(Keycode::S),
-                    ..
-                } => {
-                    player.set_y(player.y() + speed);
-                },
-                Event::KeyDown {
-                    keycode: Some(Keycode::D),
-                    ..
-                } => {
-                    player.set_x(player.x() + speed);
-                },*/
                 _ => {}
             }
         }
