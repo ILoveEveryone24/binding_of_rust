@@ -46,6 +46,19 @@ fn main() {
         ("left", false),
     ]);
 
+    let walls = HashMap::from([
+        ("top", Rect::new(0, 0, window_width as u32, 200)),
+        (
+            "right",
+            Rect::new(window_width - 200, 0, 200, window_height as u32),
+        ),
+        (
+            "bottom",
+            Rect::new(0, window_height - 200, window_width as u32, 200),
+        ),
+        ("left", Rect::new(0, 0, 200, window_height as u32)),
+    ]);
+
     'running: loop {
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
@@ -116,6 +129,11 @@ fn main() {
             if player.x() < 0 {
                 player.set_x(0);
             }
+        }
+
+        for val in walls.values() {
+            canvas.set_draw_color(Color::RGB(0, 200, 0));
+            canvas.fill_rect(*val).unwrap();
         }
 
         canvas.present();
