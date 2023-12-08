@@ -6,6 +6,14 @@ use sdl2::rect::Rect;
 use std::collections::HashMap;
 use std::time::Duration;
 
+#[derive(Debug, Copy, Clone)]
+enum Direction {
+    Up,
+    Right,
+    Down,
+    Left,
+}
+
 fn main() {
     let window_width: i32 = 2560;
     let window_height: i32 = 1600;
@@ -61,6 +69,11 @@ fn main() {
 
     let rock = Rect::new(400, 400, 50, 50);
 
+    let mut shooting = false;
+
+    let mut bullets: Vec<(Direction, Rect)> = Vec::new();
+    let mut direction = Direction::Right;
+
     'running: loop {
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
@@ -76,9 +89,20 @@ fn main() {
                     ..
                 } => break 'running,
                 Event::KeyDown {
+                    keycode: Some(Keycode::Space),
+                    ..
+                } => shooting = true,
+                Event::KeyUp {
+                    keycode: Some(Keycode::Space),
+                    ..
+                } => shooting = false,
+                Event::KeyDown {
                     keycode: Some(Keycode::W),
                     ..
-                } => *movement.get_mut("up").unwrap() = true,
+                } => {
+                    *movement.get_mut("up").unwrap() = true;
+                    direction = Direction::Up;
+                }
                 Event::KeyUp {
                     keycode: Some(Keycode::W),
                     ..
@@ -86,7 +110,10 @@ fn main() {
                 Event::KeyDown {
                     keycode: Some(Keycode::D),
                     ..
-                } => *movement.get_mut("right").unwrap() = true,
+                } => {
+                    *movement.get_mut("right").unwrap() = true;
+                    direction = Direction::Right;
+                }
                 Event::KeyUp {
                     keycode: Some(Keycode::D),
                     ..
@@ -94,7 +121,10 @@ fn main() {
                 Event::KeyDown {
                     keycode: Some(Keycode::S),
                     ..
-                } => *movement.get_mut("down").unwrap() = true,
+                } => {
+                    *movement.get_mut("down").unwrap() = true;
+                    direction = Direction::Down;
+                }
                 Event::KeyUp {
                     keycode: Some(Keycode::S),
                     ..
@@ -102,7 +132,10 @@ fn main() {
                 Event::KeyDown {
                     keycode: Some(Keycode::A),
                     ..
-                } => *movement.get_mut("left").unwrap() = true,
+                } => {
+                    *movement.get_mut("left").unwrap() = true;
+                    direction = Direction::Left;
+                }
                 Event::KeyUp {
                     keycode: Some(Keycode::A),
                     ..
@@ -169,6 +202,27 @@ fn main() {
                 }
             }
         }
+
+        if shooting {
+            let bullet = Rect::new(player.center().x(), player.center().y(), 10, 10);
+            bullets.push((direction, bullet));
+        }
+
+        for (dir, bullet) in &mut bullets {
+            match dir {
+                Direction::Up => bullet.set_y(bullet.y() - 2),
+                Direction::Right => bullet.set_x(bullet.x() + 2),
+                Direction::Down => bullet.set_y(bullet.y() + 2),
+                Direction::Left => bullet.set_x(bullet.x() - 2),
+            }
+            canvas.set_draw_color(Color::RGB(100, 50, 70));
+            canvas.fill_rect(*bullet).unwrap();
+        }
+        bullets.retain(|(_, x)| {
+            x.x() < window_width && x.x() > 0 && x.y() < window_height && x.y() > 0
+        });
+
+        println!("{:?}", bullets);
 
         canvas.present();
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
