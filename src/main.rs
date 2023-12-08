@@ -59,11 +59,15 @@ fn main() {
         ("left", Rect::new(0, 0, 200, window_height as u32)),
     ]);
 
+    let rock = Rect::new(400, 400, 50, 50);
+
     'running: loop {
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
         canvas.set_draw_color(Color::RGB(200, 10, 10));
         canvas.fill_rect(player).unwrap();
+        canvas.set_draw_color(Color::RGB(0, 0, 200));
+        canvas.fill_rect(rock).unwrap();
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -108,32 +112,62 @@ fn main() {
         }
         if movement["up"] {
             player.set_y(player.y() - speed);
-            if player.y() < 0 {
-                player.set_y(0);
+            if player.top() < walls["top"].bottom() {
+                player.set_y(walls["top"].bottom());
             }
         }
         if movement["right"] {
             player.set_x(player.x() + speed);
-            if player.x() > window_width {
-                player.set_x(window_width);
+            if player.right() > walls["right"].left() {
+                player.set_x(walls["right"].left() - player.width() as i32);
             }
         }
         if movement["down"] {
             player.set_y(player.y() + speed);
-            if player.y() > window_height {
-                player.set_y(window_height);
+            if player.bottom() > walls["bottom"].top() {
+                player.set_y(walls["bottom"].top() - player.height() as i32);
             }
         }
         if movement["left"] {
             player.set_x(player.x() - speed);
-            if player.x() < 0 {
-                player.set_x(0);
+            if player.left() < walls["left"].right() {
+                player.set_x(walls["left"].right());
             }
         }
 
         for val in walls.values() {
             canvas.set_draw_color(Color::RGB(0, 200, 0));
             canvas.fill_rect(*val).unwrap();
+        }
+
+        match rock.intersection(player) {
+            None => {}
+            _ => {
+                let collision = rock.intersection(player).unwrap();
+
+                if player.right() > rock.left()
+                    && player.left() < rock.left()
+                    && collision.width() <= collision.height()
+                {
+                    player.set_x(player.x() - collision.width() as i32);
+                } else if player.left() < rock.right()
+                    && player.right() > rock.right()
+                    && collision.width() <= collision.height()
+                {
+                    player.set_x(player.x() + collision.width() as i32);
+                }
+                if player.top() < rock.bottom()
+                    && player.bottom() > rock.bottom()
+                    && collision.height() <= collision.width()
+                {
+                    player.set_y(player.y() + collision.height() as i32);
+                } else if player.bottom() > rock.top()
+                    && player.top() < rock.top()
+                    && collision.height() <= collision.width()
+                {
+                    player.set_y(player.y() - collision.height() as i32);
+                }
+            }
         }
 
         canvas.present();
