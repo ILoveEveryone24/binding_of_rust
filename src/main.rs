@@ -7,6 +7,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use std::collections::HashMap;
+use std::path::Path;
 use std::time::{Duration, Instant};
 
 #[derive(Debug, Copy, Clone)]
@@ -43,10 +44,19 @@ fn main() {
         Err(error) => panic!("Couldn't create canvas: {:?}", error),
     };
 
+    let texture_creator = canvas.texture_creator();
+
     let mut event_pump = match sdl_context.event_pump() {
         Ok(x) => x,
         Err(error) => panic!("Couldn't catch events: {:?}", error),
     };
+
+    let temp_surface =
+        sdl2::surface::Surface::load_bmp(Path::new("./sprites/character.bmp")).unwrap();
+
+    let texture = texture_creator
+        .create_texture_from_surface(&temp_surface)
+        .unwrap();
 
     let mut player = Rect::new(1280, 800, 100, 100);
     let speed = 15;
@@ -84,11 +94,9 @@ fn main() {
     let mut previous_shot = Instant::now() - gun_cooldown;
 
     'running: loop {
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
+        canvas.set_draw_color(Color::RGB(153, 76, 0));
         canvas.clear();
-
-        canvas.set_draw_color(Color::RGB(200, 10, 10));
-        canvas.fill_rect(player).unwrap();
+        let _ = canvas.copy(&texture, None, player);
 
         Enemy::render(&mut enemy_list, &mut canvas);
 
@@ -200,7 +208,7 @@ fn main() {
                 Direction::Down => bullet.set_y(bullet.y() + bullet_speed),
                 Direction::Left => bullet.set_x(bullet.x() - bullet_speed),
             }
-            canvas.set_draw_color(Color::RGB(100, 50, 70));
+            canvas.set_draw_color(Color::RGB(100, 0, 70));
             canvas.fill_rect(*bullet).unwrap();
             for enemy in &mut enemy_list {
                 if enemy.body.has_intersection(*bullet) && enemy.alive {
