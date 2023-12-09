@@ -21,7 +21,7 @@ struct Enemy {
 }
 
 impl Enemy {
-    fn new(x: i32, y: i32, hp: i32, enemy_list: &mut Vec<Enemy>) {
+    fn add(x: i32, y: i32, hp: i32, enemy_list: &mut Vec<Enemy>) {
         let enemy = Enemy {
             alive: true,
             body: Rect::new(x, y, 50, 50),
@@ -135,8 +135,8 @@ fn main() {
     ]);
 
     let mut enemy_list = Vec::new();
-    Enemy::new(400, 400, 10, &mut enemy_list);
-    Enemy::new(700, 600, 5, &mut enemy_list);
+    Enemy::add(400, 400, 10, &mut enemy_list);
+    Enemy::add(700, 600, 5, &mut enemy_list);
 
     let mut shooting = false;
     let bullet_speed = 20;
