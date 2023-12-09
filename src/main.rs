@@ -1,4 +1,7 @@
 extern crate sdl2;
+
+use binding_of_rust::game::collision::collision_detection;
+use binding_of_rust::game::enemy::Enemy;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -12,73 +15,6 @@ enum Direction {
     Right,
     Down,
     Left,
-}
-#[derive(Debug)]
-struct Enemy {
-    alive: bool,
-    body: Rect,
-    health: i32,
-}
-
-impl Enemy {
-    fn add(x: i32, y: i32, hp: i32, enemy_list: &mut Vec<Enemy>) {
-        let enemy = Enemy {
-            alive: true,
-            body: Rect::new(x, y, 50, 50),
-            health: hp,
-        };
-        enemy_list.push(enemy);
-    }
-
-    fn render(enemy_list: &mut Vec<Enemy>, canvas: &mut sdl2::render::WindowCanvas) {
-        enemy_list.retain(|x| x.alive);
-        for enemy in enemy_list {
-            if enemy.alive {
-                canvas.set_draw_color(Color::RGB(0, 0, 200));
-                canvas.fill_rect(enemy.body).unwrap();
-            }
-            if enemy.health <= 0 {
-                enemy.alive = false;
-            }
-        }
-    }
-}
-
-fn collision_detection(enemy_list: &Vec<Enemy>, obj_two: &mut Rect) {
-    for enemy in enemy_list {
-        if enemy.alive {
-            let obj_one = enemy.body;
-            match obj_one.intersection(*obj_two) {
-                None => {}
-                _ => {
-                    let collision = obj_one.intersection(*obj_two).unwrap();
-
-                    if obj_two.right() > obj_one.left()
-                        && obj_two.left() < obj_one.left()
-                        && collision.width() <= collision.height()
-                    {
-                        obj_two.set_x(obj_two.x() - collision.width() as i32);
-                    } else if obj_two.left() < obj_one.right()
-                        && obj_two.right() > obj_one.right()
-                        && collision.width() <= collision.height()
-                    {
-                        obj_two.set_x(obj_two.x() + collision.width() as i32);
-                    }
-                    if obj_two.top() < obj_one.bottom()
-                        && obj_two.bottom() > obj_one.bottom()
-                        && collision.height() <= collision.width()
-                    {
-                        obj_two.set_y(obj_two.y() + collision.height() as i32);
-                    } else if obj_two.bottom() > obj_one.top()
-                        && obj_two.top() < obj_one.top()
-                        && collision.height() <= collision.width()
-                    {
-                        obj_two.set_y(obj_two.y() - collision.height() as i32);
-                    }
-                }
-            }
-        }
-    }
 }
 
 fn main() {
@@ -250,7 +186,7 @@ fn main() {
         }
 
         if shooting {
-            let bullet = Rect::new(player.center().x(), player.center().y(), 10, 10);
+            let bullet = Rect::new(player.center().x(), player.center().y(), 20, 20);
             bullets.push((direction, bullet));
             shooting = false;
         }
