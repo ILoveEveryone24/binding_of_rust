@@ -4,7 +4,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use std::collections::HashMap;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Copy, Clone)]
 enum Direction {
@@ -12,6 +12,73 @@ enum Direction {
     Right,
     Down,
     Left,
+}
+#[derive(Debug)]
+struct Enemy {
+    alive: bool,
+    body: Rect,
+    health: i32,
+}
+
+impl Enemy {
+    fn new(x: i32, y: i32, hp: i32, enemy_list: &mut Vec<Enemy>) {
+        let enemy = Enemy {
+            alive: true,
+            body: Rect::new(x, y, 50, 50),
+            health: hp,
+        };
+        enemy_list.push(enemy);
+    }
+
+    fn render(enemy_list: &mut Vec<Enemy>, canvas: &mut sdl2::render::WindowCanvas) {
+        enemy_list.retain(|x| x.alive);
+        for enemy in enemy_list {
+            if enemy.alive {
+                canvas.set_draw_color(Color::RGB(0, 0, 200));
+                canvas.fill_rect(enemy.body).unwrap();
+            }
+            if enemy.health <= 0 {
+                enemy.alive = false;
+            }
+        }
+    }
+}
+
+fn collision_detection(enemy_list: &Vec<Enemy>, obj_two: &mut Rect) {
+    for enemy in enemy_list {
+        if enemy.alive {
+            let obj_one = enemy.body;
+            match obj_one.intersection(*obj_two) {
+                None => {}
+                _ => {
+                    let collision = obj_one.intersection(*obj_two).unwrap();
+
+                    if obj_two.right() > obj_one.left()
+                        && obj_two.left() < obj_one.left()
+                        && collision.width() <= collision.height()
+                    {
+                        obj_two.set_x(obj_two.x() - collision.width() as i32);
+                    } else if obj_two.left() < obj_one.right()
+                        && obj_two.right() > obj_one.right()
+                        && collision.width() <= collision.height()
+                    {
+                        obj_two.set_x(obj_two.x() + collision.width() as i32);
+                    }
+                    if obj_two.top() < obj_one.bottom()
+                        && obj_two.bottom() > obj_one.bottom()
+                        && collision.height() <= collision.width()
+                    {
+                        obj_two.set_y(obj_two.y() + collision.height() as i32);
+                    } else if obj_two.bottom() > obj_one.top()
+                        && obj_two.top() < obj_one.top()
+                        && collision.height() <= collision.width()
+                    {
+                        obj_two.set_y(obj_two.y() - collision.height() as i32);
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn main() {
@@ -67,20 +134,28 @@ fn main() {
         ("left", Rect::new(0, 0, 200, window_height as u32)),
     ]);
 
-    let rock = Rect::new(400, 400, 50, 50);
+    let mut enemy_list = Vec::new();
+    Enemy::new(400, 400, 10, &mut enemy_list);
+    Enemy::new(700, 600, 5, &mut enemy_list);
 
     let mut shooting = false;
+    let bullet_speed = 20;
 
     let mut bullets: Vec<(Direction, Rect)> = Vec::new();
     let mut direction = Direction::Right;
 
+    let gun_cooldown = Duration::from_secs(1);
+    let mut previous_shot = Instant::now() - gun_cooldown;
+
     'running: loop {
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
+
         canvas.set_draw_color(Color::RGB(200, 10, 10));
         canvas.fill_rect(player).unwrap();
-        canvas.set_draw_color(Color::RGB(0, 0, 200));
-        canvas.fill_rect(rock).unwrap();
+
+        Enemy::render(&mut enemy_list, &mut canvas);
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -91,11 +166,12 @@ fn main() {
                 Event::KeyDown {
                     keycode: Some(Keycode::Space),
                     ..
-                } => shooting = true,
-                Event::KeyUp {
-                    keycode: Some(Keycode::Space),
-                    ..
-                } => shooting = false,
+                } => {
+                    if Instant::now() - previous_shot > gun_cooldown {
+                        previous_shot = Instant::now();
+                        shooting = true;
+                    }
+                }
                 Event::KeyDown {
                     keycode: Some(Keycode::W),
                     ..
@@ -173,56 +249,33 @@ fn main() {
             canvas.fill_rect(*val).unwrap();
         }
 
-        match rock.intersection(player) {
-            None => {}
-            _ => {
-                let collision = rock.intersection(player).unwrap();
-
-                if player.right() > rock.left()
-                    && player.left() < rock.left()
-                    && collision.width() <= collision.height()
-                {
-                    player.set_x(player.x() - collision.width() as i32);
-                } else if player.left() < rock.right()
-                    && player.right() > rock.right()
-                    && collision.width() <= collision.height()
-                {
-                    player.set_x(player.x() + collision.width() as i32);
-                }
-                if player.top() < rock.bottom()
-                    && player.bottom() > rock.bottom()
-                    && collision.height() <= collision.width()
-                {
-                    player.set_y(player.y() + collision.height() as i32);
-                } else if player.bottom() > rock.top()
-                    && player.top() < rock.top()
-                    && collision.height() <= collision.width()
-                {
-                    player.set_y(player.y() - collision.height() as i32);
-                }
-            }
-        }
-
         if shooting {
             let bullet = Rect::new(player.center().x(), player.center().y(), 10, 10);
             bullets.push((direction, bullet));
+            shooting = false;
         }
+
+        collision_detection(&enemy_list, &mut player);
 
         for (dir, bullet) in &mut bullets {
             match dir {
-                Direction::Up => bullet.set_y(bullet.y() - 2),
-                Direction::Right => bullet.set_x(bullet.x() + 2),
-                Direction::Down => bullet.set_y(bullet.y() + 2),
-                Direction::Left => bullet.set_x(bullet.x() - 2),
+                Direction::Up => bullet.set_y(bullet.y() - bullet_speed),
+                Direction::Right => bullet.set_x(bullet.x() + bullet_speed),
+                Direction::Down => bullet.set_y(bullet.y() + bullet_speed),
+                Direction::Left => bullet.set_x(bullet.x() - bullet_speed),
             }
             canvas.set_draw_color(Color::RGB(100, 50, 70));
             canvas.fill_rect(*bullet).unwrap();
+            for enemy in &mut enemy_list {
+                if enemy.body.has_intersection(*bullet) && enemy.alive {
+                    enemy.health -= 1;
+                    bullet.set_y(0);
+                }
+            }
         }
         bullets.retain(|(_, x)| {
             x.x() < window_width && x.x() > 0 && x.y() < window_height && x.y() > 0
         });
-
-        println!("{:?}", bullets);
 
         canvas.present();
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
